@@ -1,0 +1,17 @@
+[
+    {
+        "room_type_id": 1,
+        "type_name": "Standard Single",
+        "price": 100
+    },
+    {
+        "room_type_id": 2,
+        "type_name": "Double Deluxe",
+        "price": 150
+    },
+    {
+        "room_type_id": 3,
+        "type_name": "Suite",
+        "price": 250
+    }
+]
