@@ -1,17 +1,27 @@
 [
     {
         "room_type_id": 1,
-        "type_name": "Standard Single",
+        "type_name": "Standard",
         "price": 100
     },
     {
         "room_type_id": 2,
-        "type_name": "Double Deluxe",
+        "type_name": "Deluxe",
         "price": 150
     },
     {
         "room_type_id": 3,
-        "type_name": "Suite",
+        "type_name": "Junior Suite",
         "price": 250
+    },
+    {
+        "room_type_id": 4,
+        "type_name": "Executive House",
+        "price": 400
+    },
+    {
+        "room_type_id": 5,
+        "type_name": "Penthouse",
+        "price": 800
     }
 ]

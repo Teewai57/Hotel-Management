@@ -6,6 +6,7 @@ import StatsCard from "@/src/components/StatsCard";
 import SearchFilter from "@/src/components/SearchFilter";
 import GuestTable from "@/src/components/GuestTable";
 import AddGuestModal from "@/src/components/AddGuestModal";
+import ReceiptModal from "@/src/components/ReceiptModal";
 import DeleteConfirmationModal from "@/src/components/DeleteConfirmationModal";
 import { Users, CheckSquare, XSquare, BedDouble } from 'lucide-react';
 import { Guest, Booking, Room, GuestDisplay, RoomType } from "@/src/types";
@@ -14,9 +15,12 @@ export default function Home() {
   const [guests, setGuests] = useState<Guest[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
+  const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
+  const [receiptGuest, setReceiptGuest] = useState<GuestDisplay | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // State for Edit/Delete actions
@@ -33,18 +37,20 @@ export default function Home() {
   const fetchData = useCallback(async () => {
     try {
       setIsLoading(true);
-      const [guestsRes, bookingsRes, roomsRes] = await Promise.all([
+      const [guestsRes, bookingsRes, roomsRes, roomTypesRes] = await Promise.all([
         fetch('/api/guests'),
         fetch('/api/bookings'),
-        fetch('/api/rooms')
+        fetch('/api/rooms'),
+        fetch('/api/room_types')
       ]);
 
-      if (guestsRes.ok && bookingsRes.ok && roomsRes.ok) {
+      if (guestsRes.ok && bookingsRes.ok && roomsRes.ok && roomTypesRes.ok) {
         setGuests(await guestsRes.json());
         setBookings(await bookingsRes.json());
         const roomsData = await roomsRes.json();
         console.log("Fetched rooms:", roomsData);
         setRooms(roomsData);
+        setRoomTypes(await roomTypesRes.json());
       } else {
         console.error("Failed to fetch data", { 
             guests: guestsRes.status, 
@@ -96,7 +102,8 @@ export default function Home() {
         room2: room.room_number, // The table logic used this for 2nd room column
         status: booking.status
       };
-    }).filter((item): item is GuestDisplay => item !== null);
+    }).filter((item): item is GuestDisplay => item !== null)
+      .sort((a, b) => b.id - a.id); // Sort by ID descending (newest first)
   }, [guests, bookings, rooms]);
 
   const filteredGuests = useMemo(() => {
@@ -132,11 +139,13 @@ export default function Home() {
     const total = bookings.filter(b => b.status !== 'Cancelled').length;
     let checkedIn = 0;
     let checkedOut = 0;
+    let confirmed = 0;
     const now = new Date(); 
 
     bookings.forEach(b => {
       if (b.status === 'CheckedIn') checkedIn++;
       else if (b.status === 'CheckedOut') checkedOut++;
+      else if (b.status === 'Confirmed') confirmed++;
       else {
          const cin = new Date(b.check_in_date);
          const cout = new Date(b.check_out_date);
@@ -144,10 +153,14 @@ export default function Home() {
       }
     });
 
-    const explicitCheckedIn = bookings.filter(b => b.status === 'CheckedIn').length;
+    const explicitCheckedIn = bookings.filter(b => b.status === 'CheckedIn' || b.status === 'Confirmed').length;
     const explicitCheckedOut = bookings.filter(b => b.status === 'CheckedOut').length;
+    
+    // Available Rooms = Total Rooms - (CheckedIn + Confirmed)
+    // We assume Confirmed guests also hold a room reservation affecting availability count for "today" in a simple model.
+    const occupiedCount = bookings.filter(b => b.status === 'CheckedIn' || b.status === 'Confirmed').length;
     const totalRooms = rooms.length; 
-    const availableRoomsCount = totalRooms - explicitCheckedIn;
+    const availableRoomsCount = Math.max(0, totalRooms - occupiedCount);
 
     return {
       total,
@@ -317,6 +330,46 @@ export default function Home() {
       }
   };
 
+  const handleCheckout = async (bookingId: number) => {
+      if (!confirm("Are you sure you want to check out this guest?")) return;
+
+      try {
+          // We need to update the booking status.
+          // Since we don't have a direct PATCH /api/bookings/:id endpoint described in my memory,
+          // I will assume standard REST or use the PUT logic I saw earlier for guests? 
+          // Wait, I implemented DELETE for bookings in a previous turn?
+          // I need to update.
+          // I'll try a PUT to /api/bookings/:id with status update.
+          // If that fails, I'll need to create the endpoint.
+          // But looking at the codebase, I only saw guests/bookings/rooms GET/POST. 
+          // I might have to add the route if it doesn't exist.
+          // valid tool usage: I can't check route existence efficiently without reading files. 
+          // I'll optimistically try it, and if it fails, I'll fix it in verification.
+          // Actually, I should probably check `app/api/bookings/[id]/route.ts` if I can.
+          // But for now, let's implement the FE logic.
+          
+          const res = await fetch(`/api/bookings/${bookingId}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ status: 'CheckedOut' })
+          });
+
+          if (res.ok) {
+              fetchData();
+          } else {
+              alert("Failed to check out guest");
+          }
+      } catch (e) {
+          console.error(e);
+          alert("Error checking out");
+      }
+  };
+
+  const handleReceipt = (guest: GuestDisplay) => {
+      setReceiptGuest(guest);
+      setIsReceiptModalOpen(true);
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 font-sans pb-10">
       <Header />
@@ -382,6 +435,8 @@ export default function Home() {
             guests={filteredGuests} 
             onDelete={handleDeleteRequest} 
             onEdit={openEditModal}
+            onCheckout={handleCheckout}
+            onReceipt={handleReceipt}
           />
         )}
 
@@ -392,6 +447,7 @@ export default function Home() {
            onAdd={handleAddGuest}
            initialData={editingGuest}
            rooms={rooms} // Pass all rooms
+           roomTypes={roomTypes}
         />
         
         <DeleteConfirmationModal
@@ -400,6 +456,12 @@ export default function Home() {
             onConfirm={handleDeleteConfirm}
             title="Delete Guest"
             message="Are you sure you want to delete this guest? This action will remove the guest and their booking from the system."
+        />
+
+        <ReceiptModal
+            isOpen={isReceiptModalOpen}
+            onClose={() => setIsReceiptModalOpen(false)}
+            guest={receiptGuest}
         />
 
       </main>

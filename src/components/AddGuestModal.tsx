@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
-import { Room } from '@/src/types';
+import { Room, RoomType } from '@/src/types';
 
 interface AddGuestModalProps {
   isOpen: boolean;
@@ -8,9 +8,10 @@ interface AddGuestModalProps {
   onAdd: (guest: any) => void;
   initialData?: any; // For editing
   rooms: Room[]; // List of all rooms
+  roomTypes: RoomType[];
 }
 
-export default function AddGuestModal({ isOpen, onClose, onAdd, initialData, rooms }: AddGuestModalProps) {
+export default function AddGuestModal({ isOpen, onClose, onAdd, initialData, rooms, roomTypes }: AddGuestModalProps) {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
@@ -18,6 +19,7 @@ export default function AddGuestModal({ isOpen, onClose, onAdd, initialData, roo
   const [checkIn, setCheckIn] = useState('');
   const [checkOut, setCheckOut] = useState('');
   const [room, setRoom] = useState('');
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number | ''>('');
 
   // Effect to populate form when initialData changes or modal opens
   useEffect(() => {
@@ -38,7 +40,16 @@ export default function AddGuestModal({ isOpen, onClose, onAdd, initialData, roo
 
       setCheckIn(parseToISO(initialData.checkInISO || initialData.checkIn) || '');
       setCheckOut(parseToISO(initialData.checkOutISO || initialData.checkOut) || '');
-      setRoom(initialData.room || ''); // Ideally this matches the room_number in value
+      setRoom(initialData.room || ''); 
+      
+      // Derive category from room
+      const currentRoom = rooms.find(r => r.room_number === initialData.room);
+      if (currentRoom) {
+          setSelectedCategoryId(currentRoom.room_type_id);
+      } else {
+          setSelectedCategoryId('');
+      }
+
     } else if (isOpen) {
       if (!initialData) {
         setName('');
@@ -48,9 +59,10 @@ export default function AddGuestModal({ isOpen, onClose, onAdd, initialData, roo
         setCheckIn('');
         setCheckOut('');
         setRoom('');
+        setSelectedCategoryId('');
       }
     }
-  }, [isOpen, initialData]);
+  }, [isOpen, initialData, rooms]);
 
   if (!isOpen) return null;
 
@@ -83,8 +95,21 @@ export default function AddGuestModal({ isOpen, onClose, onAdd, initialData, roo
     setCheckIn('');
     setCheckOut('');
     setRoom('');
+    setSelectedCategoryId('');
     onClose();
   };
+
+  // Filter rooms based on selected category
+  const filteredRooms = rooms.filter(r => {
+      // Must match category if selected
+      if (selectedCategoryId && r.room_type_id !== Number(selectedCategoryId)) return false;
+      
+      // Must be Available OR be the current room (for editing)
+      const isAvailable = r.status === 'Available';
+      const isCurrent = initialData && initialData.room === r.room_number;
+      
+      return isAvailable || isCurrent;
+  });
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
@@ -166,21 +191,43 @@ export default function AddGuestModal({ isOpen, onClose, onAdd, initialData, roo
              </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Room Number *</label>
-            <select
-              value={room}
-              onChange={(e) => setRoom(e.target.value)}
-              className="w-full text-black border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500 bg-white"
-              required
-            >
-               <option value="">Select a room</option>
-               {rooms.filter(r => r.status === 'Available' || (initialData && initialData.room === r.room_number)).map((r) => (
-                   <option key={r.room_id} value={r.room_number}>
-                     {r.room_number} ({r.status})
-                   </option>
-               ))}
-            </select>
+          <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Room Category</label>
+                <select
+                  value={selectedCategoryId}
+                  onChange={(e) => {
+                      setSelectedCategoryId(Number(e.target.value));
+                      setRoom(''); // Reset room when category changes
+                  }}
+                  className="w-full text-black border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500 bg-white"
+                >
+                   <option value="">All Categories</option>
+                   {roomTypes.map((rt) => (
+                       <option key={rt.room_type_id} value={rt.room_type_id}>
+                           {rt.type_name} (${rt.price})
+                       </option>
+                   ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Room Number *</label>
+                <select
+                  value={room}
+                  onChange={(e) => setRoom(e.target.value)}
+                  className="w-full text-black border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500 bg-white"
+                  required
+                  disabled={!selectedCategoryId && filteredRooms.length > 20} // Optional UX: force category first? Nah.
+                >
+                   <option value="">Select a room</option>
+                   {filteredRooms.map((r) => (
+                       <option key={r.room_id} value={r.room_number}>
+                         {r.room_number}
+                       </option>
+                   ))}
+                </select>
+              </div>
           </div>
 
           <div className="pt-2 flex justify-end gap-3">

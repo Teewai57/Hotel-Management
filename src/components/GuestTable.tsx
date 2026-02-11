@@ -1,16 +1,18 @@
 
 
 
-import { Trash2, Edit } from 'lucide-react';
+import { Trash2, Edit, LogOut, Receipt } from 'lucide-react';
 import { GuestDisplay } from '@/src/types';
 
 interface GuestTableProps {
   guests: GuestDisplay[];
   onDelete: (id: number) => void;
   onEdit: (guest: GuestDisplay) => void;
+  onCheckout: (id: number) => void;
+  onReceipt: (guest: GuestDisplay) => void;
 }
 
-export default function GuestTable({ guests, onDelete, onEdit }: GuestTableProps) {
+export default function GuestTable({ guests, onDelete, onEdit, onCheckout, onReceipt }: GuestTableProps) {
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
       <div className="overflow-x-auto">
@@ -53,6 +55,28 @@ export default function GuestTable({ guests, onDelete, onEdit }: GuestTableProps
                   <td className="px-6 py-3 whitespace-nowrap text-center font-bold text-gray-700">{guest.room2}</td>
                   <td className="px-6 py-3 whitespace-nowrap text-center">
                     <div className="flex items-center justify-center gap-2">
+                      <button 
+                        onClick={() => onReceipt(guest)}
+                        className="p-1 hover:bg-purple-50 hover:text-purple-500 rounded transition-colors text-gray-400"
+                        title="Generate Receipt"
+                      >
+                        <Receipt className="w-4 h-4" />
+                      </button>
+                      
+                      {guest.status === 'CheckedIn' || guest.status === 'Confirmed' ? (
+                          <button 
+                            onClick={() => onCheckout(guest.id)}
+                            className="p-1 hover:bg-green-50 hover:text-green-500 rounded transition-colors text-gray-400"
+                            title="Check Out"
+                          >
+                            <LogOut className="w-4 h-4" />
+                          </button>
+                      ) : guest.status === 'CheckedOut' ? (
+                          <span className="text-[10px] font-medium text-gray-400 bg-gray-100 px-2 py-1 rounded-full whitespace-nowrap">Checked Out</span>
+                      ) : (
+                          <span className="w-6 inline-block"></span>
+                      )}
+
                       <button 
                         onClick={() => onEdit(guest)}
                         className="p-1 hover:bg-blue-50 hover:text-blue-500 rounded transition-colors text-gray-400"

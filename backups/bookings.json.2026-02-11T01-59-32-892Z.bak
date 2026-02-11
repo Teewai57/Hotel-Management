@@ -8,12 +8,20 @@
     "status": "CheckedOut"
   },
   {
+    "booking_id": 12,
+    "guest_id": 1769596231738,
+    "room_id": 11,
+    "check_in_date": "2026-02-04T10:27:00.000Z",
+    "check_out_date": "2026-02-06T10:27:00.000Z",
+    "status": "Confirmed"
+  },
+  {
     "booking_id": 13,
     "guest_id": 1769596231740,
     "room_id": 12,
     "check_in_date": "2026-02-04T10:34:00.000Z",
     "check_out_date": "2026-02-06T10:34:00.000Z",
-    "status": "CheckedOut"
+    "status": "Confirmed"
   },
   {
     "booking_id": 14,
@@ -21,7 +29,7 @@
     "room_id": 8,
     "check_in_date": "2026-02-04T11:43:00.000Z",
     "check_out_date": "2026-02-06T11:43:00.000Z",
-    "status": "CheckedOut"
+    "status": "Confirmed"
   },
   {
     "booking_id": 15,
@@ -29,14 +37,6 @@
     "room_id": 2,
     "check_in_date": "2026-02-05T11:00:00.000Z",
     "check_out_date": "2026-02-06T11:59:00.000Z",
-    "status": "Confirmed"
-  },
-  {
-    "booking_id": 16,
-    "guest_id": 1769596231743,
-    "room_id": 3,
-    "check_in_date": "2026-02-11T02:09:00.000Z",
-    "check_out_date": "2026-02-13T02:09:00.000Z",
     "status": "Confirmed"
   }
 ]
